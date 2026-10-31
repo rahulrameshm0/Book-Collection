@@ -9,6 +9,7 @@ export default function Nav() {
     <nav className="nav">
       <div className="nav__inner">
         <Link className="wordmark" to="/">
+          <img src="/logo.svg" alt="" width="28" height="28" style={{ marginRight: 8, verticalAlign: "middle" }} />
           Shelf
         </Link>
 

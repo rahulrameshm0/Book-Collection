@@ -74,6 +74,10 @@ class BookViewSet(viewsets.ReadOnlyModelViewSet):
         queryset = super().get_queryset()
         params = self.request.query_params
 
+        readable = (params.get("readable") or "1").strip().lower()
+        if readable not in {"0", "false", "no", "off"}:
+            queryset = queryset.filter(text_file__gt="", chapter_count__gt=0)
+
         search = (params.get("search") or params.get("q") or "").strip()
         if search:
             queryset = queryset.filter(
@@ -169,7 +173,9 @@ class BookViewSet(viewsets.ReadOnlyModelViewSet):
 @api_view(["GET"])
 @permission_classes([AllowAny])
 def featured(request):
-    books = Book.objects.filter(gutenberg_id__in=FEATURED_IDS).prefetch_related("authors")
+    books = Book.objects.filter(
+        gutenberg_id__in=FEATURED_IDS, text_file__gt="", chapter_count__gt=0
+    ).prefetch_related("authors")
     by_id = {book.gutenberg_id: book for book in books}
     ordered = [by_id[gid] for gid in FEATURED_IDS if gid in by_id]
     return Response(BookListSerializer(ordered, many=True).data)

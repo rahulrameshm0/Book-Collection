@@ -20,7 +20,11 @@ from library.services.chapters import (
 
 logger = logging.getLogger(__name__)
 
-TEXT_URL = "https://www.gutenberg.org/cache/epub/{gid}/pg{gid}.txt"
+TEXT_URLS = [
+    "https://www.gutenberg.org/cache/epub/{gid}/pg{gid}.txt",
+    "https://www.gutenberg.org/files/{gid}/{gid}.txt",
+    "https://www.gutenberg.org/files/{gid}/{gid}-0.txt",
+]
 COVER_URL = "https://www.gutenberg.org/cache/epub/{gid}/pg{gid}.cover.medium.jpg"
 HEADERS = {"User-Agent": "Shelf/1.0 (personal reading app; contact: local)"}
 TIMEOUT = 60
@@ -38,10 +42,19 @@ def cover_path(book: Book) -> Path:
 
 
 def download_text(gutenberg_id: int) -> str:
-    url = TEXT_URL.format(gid=gutenberg_id)
-    response = requests.get(url, headers=HEADERS, timeout=TIMEOUT)
-    response.raise_for_status()
-    return response.content.decode("utf-8", errors="replace")
+    last_error = None
+    for template in TEXT_URLS:
+        url = template.format(gid=gutenberg_id)
+        try:
+            response = requests.get(url, headers=HEADERS, timeout=TIMEOUT)
+            if response.status_code == 200 and response.text.strip():
+                return response.content.decode("utf-8", errors="replace")
+        except requests.RequestException as exc:
+            last_error = exc
+            continue
+    if last_error:
+        raise last_error
+    raise ValueError(f"No readable text found for book #{gutenberg_id}")
 
 
 def _store(book: Book, text: str, chapters) -> Book:

@@ -282,7 +282,7 @@ img {
 /* ---------- home ---------- */
 
 .hero {
-  padding: 86px 0 54px;
+  padding: 64px 0 40px;
   border-bottom: 1px solid var(--line);
   display: grid;
   grid-template-columns: minmax(0, 1fr) 320px;
@@ -490,6 +490,12 @@ img {
   overflow: hidden;
   border-radius: 1px;
   box-shadow: 0 1px 0 rgba(21, 26, 23, 0.18);
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.book:hover .book__cover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 24px -12px rgba(21, 26, 23, 0.45);
 }
 
 .book__cover img {
