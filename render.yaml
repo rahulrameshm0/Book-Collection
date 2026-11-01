@@ -1,0 +1,29 @@
+services:
+  - type: web
+    name: shelf
+    runtime: python
+    plan: free
+    buildCommand: ./build.sh
+    startCommand: cd backend && gunicorn config.wsgi:application --bind 0.0.0.0:$PORT
+    healthCheckPath: /api/books/
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.8
+      - key: NODE_VERSION
+        value: 22.12.0
+      - key: DJANGO_DEBUG
+        value: "0"
+      - key: DJANGO_SECRET_KEY
+        generateValue: true
+      # Keep runtime downloads out of the repo's backend/media, whose files are
+      # keyed by local SQLite ids that won't match the Postgres ones.
+      - key: DJANGO_MEDIA_ROOT
+        value: /opt/render/project/src/runtime-media
+      - key: DATABASE_URL
+        fromDatabase:
+          name: shelf-db
+          property: connectionString
+
+databases:
+  - name: shelf-db
+    plan: free

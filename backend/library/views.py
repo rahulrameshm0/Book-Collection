@@ -134,12 +134,13 @@ class BookViewSet(viewsets.ReadOnlyModelViewSet):
     @action(detail=True, methods=["get"], url_path=r"chapters/(?P<index>[0-9]+)")
     def chapter(self, request, pk=None, index=None):
         book = self.get_object()
+        if book.gutenberg_id:
+            # No-op when cached; restores the text if the disk was wiped (e.g. a redeploy).
+            gutenberg.fetch_and_store(book)
+
         chapter = book.chapters.filter(index=index).first()
         if not chapter:
             raise Http404("Chapter not found.")
-
-        if not book.chapter_count or not book.text_file:
-            gutenberg.fetch_and_store(book)
 
         return Response(ChapterContentSerializer(chapter).data)
 
@@ -157,7 +158,7 @@ class BookViewSet(viewsets.ReadOnlyModelViewSet):
     @action(detail=True, methods=["get"], url_path="download")
     def download(self, request, pk=None):
         book = self.get_object()
-        if not book.text_file:
+        if book.gutenberg_id:
             gutenberg.fetch_and_store(book)
         path = gutenberg.text_path(book)
         if not path.exists():
