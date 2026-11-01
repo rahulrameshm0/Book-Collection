@@ -44,7 +44,7 @@ export default function App() {
         <Route
           path="*"
           element={
-            <main className="page empty">
+            <main className="page empty" id="main">
               <h2>This page is missing.</h2>
               <p>The shelf you were looking for is not here.</p>
               <a className="btn btn--solid" href="/">

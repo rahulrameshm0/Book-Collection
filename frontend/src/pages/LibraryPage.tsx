@@ -4,6 +4,7 @@ import { Link, useSearchParams } from "react-router-dom";
 import { api, queryString } from "../api";
 import BookCard from "../components/BookCard";
 import Footer from "../components/Footer";
+import Icon from "../components/Icon";
 import Nav from "../components/Nav";
 import type { BookSummary, Facet, Page } from "../types";
 
@@ -11,7 +12,7 @@ const PAGE_SIZE = 24;
 
 const ORDERINGS = [
   { value: "title", label: "Title, A–Z" },
-  { value: "recent", label: "First published" },
+  { value: "recent", label: "Newest on Gutenberg" },
   { value: "short", label: "Shortest first" },
   { value: "long", label: "Longest first" },
 ];
@@ -19,7 +20,7 @@ const ORDERINGS = [
 export default function LibraryPage() {
   const [params, setParams] = useSearchParams();
   const search = params.get("search") ?? "";
-  const shelf = params.get("shelf") ?? "all";
+  const category = params.get("category") ?? "all";
   const ordering = params.get("ordering") ?? "title";
   const page = Number(params.get("page") ?? "1") || 1;
 
@@ -37,7 +38,7 @@ export default function LibraryPage() {
     let active = true;
     api<Facet[]>("/facets/", { auth: false })
       .then((data) => {
-        if (active) setFacets(data.slice(0, 10));
+        if (active) setFacets(data.filter((facet) => facet.count > 0));
       })
       .catch(() => {});
     return () => {
@@ -54,7 +55,7 @@ export default function LibraryPage() {
     api<Page<BookSummary>>(
       `/books/${queryString({
         search,
-        shelf,
+        category,
         ordering,
         page,
         page_size: PAGE_SIZE,
@@ -77,7 +78,7 @@ export default function LibraryPage() {
       active = false;
       controller.abort();
     };
-  }, [search, shelf, ordering, page]);
+  }, [search, category, ordering, page]);
 
   useEffect(() => {
     if (input === search) return;
@@ -102,30 +103,33 @@ export default function LibraryPage() {
     [result],
   );
 
-  const activeShelfLabel = shelf === "all" ? "The whole library" : shelf;
+  const activeLabel =
+    category === "all"
+      ? "Every fantasy book"
+      : facets.find((facet) => facet.slug === category)?.name ?? "Fantasy";
 
   return (
     <div className="shell">
       <Nav />
-      <main className="page">
+      <main className="page" id="main">
         <div className="library">
           <aside className="filters" aria-label="Filters">
             <div className="filters__group">
-              <h2>Shelves</h2>
+              <h2>Categories</h2>
               <div className="filter-list">
                 <button
                   type="button"
-                  aria-pressed={shelf === "all"}
-                  onClick={() => update({ shelf: undefined, page: "1" })}
+                  aria-pressed={category === "all"}
+                  onClick={() => update({ category: undefined, page: "1" })}
                 >
-                  All books
+                  All fantasy
                 </button>
                 {facets.map((facet) => (
                   <button
-                    key={facet.name}
+                    key={facet.slug}
                     type="button"
-                    aria-pressed={shelf === facet.name}
-                    onClick={() => update({ shelf: facet.name, page: "1" })}
+                    aria-pressed={category === facet.slug}
+                    onClick={() => update({ category: facet.slug, page: "1" })}
                   >
                     <span>{facet.name}</span>
                     <small>{facet.count}</small>
@@ -158,13 +162,14 @@ export default function LibraryPage() {
           <div>
             <div className="library__head">
               <div>
-                <h1 className="library__title">{activeShelfLabel}</h1>
+                <h1 className="library__title">{activeLabel}</h1>
                 <p className="library__count">
                   {result ? `${result.count.toLocaleString("en")} books` : "Counting…"}
                 </p>
               </div>
               <div className="library__tools">
                 <div className="search">
+                  <Icon name="search" />
                   <label className="visually-hidden" htmlFor="library-search">
                     Search titles and authors
                   </label>
@@ -212,8 +217,8 @@ export default function LibraryPage() {
               <div className="empty">
                 <h2>No books match that.</h2>
                 <p>
-                  Try a shorter search, or clear the shelf filter to look across the whole
-                  catalogue.
+                  Try a shorter search, or clear the category to look across every fantasy
+                  book.
                 </p>
                 <button
                   className="btn btn--ghost"
@@ -229,7 +234,7 @@ export default function LibraryPage() {
             ) : null}
 
             {result && result.results.length ? (
-              <div className="grid" style={{ opacity: loading ? 0.55 : 1 }}>
+              <div className={loading ? "grid is-loading" : "grid"}>
                 {result.results.map((book) => (
                   <BookCard key={book.id} book={book} />
                 ))}
@@ -261,7 +266,7 @@ export default function LibraryPage() {
             ) : null}
 
             {result && result.count === 0 && !loading ? (
-              <p style={{ marginTop: 24, fontSize: 13, color: "var(--muted)" }}>
+              <p className="hint">
                 Nothing here yet. Have you run <code>python manage.py sync_catalog</code>?{" "}
                 <Link to="/">Back home</Link>
               </p>

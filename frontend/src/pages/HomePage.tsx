@@ -1,11 +1,12 @@
-import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { useEffect, useState, type FormEvent } from "react";
+import { Link, useNavigate } from "react-router-dom";
 
-import { api, formatCount, queryString } from "../api";
+import { api, queryString } from "../api";
 import { useAuth } from "../auth";
 import BookCard from "../components/BookCard";
 import BookCover from "../components/BookCover";
 import Footer from "../components/Footer";
+import Icon from "../components/Icon";
 import Nav from "../components/Nav";
 import type { BookSummary, Facet, Page, Progress } from "../types";
 
@@ -13,11 +14,13 @@ type Stats = { books: number; chapters: number };
 
 export default function HomePage() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [stats, setStats] = useState<Stats | null>(null);
   const [featured, setFeatured] = useState<BookSummary[]>([]);
   const [shortBooks, setShortBooks] = useState<BookSummary[]>([]);
   const [facets, setFacets] = useState<Facet[]>([]);
   const [progress, setProgress] = useState<Progress | null>(null);
+  const [query, setQuery] = useState("");
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -35,7 +38,7 @@ export default function HomePage() {
         setStats(statsData);
         setFeatured(featuredData);
         setShortBooks(shortData.results);
-        setFacets(facetData.slice(0, 8));
+        setFacets(facetData.filter((facet) => facet.count > 0));
       })
       .catch(() => {
         if (active) setError("The library could not be reached. Is the API running?");
@@ -62,53 +65,78 @@ export default function HomePage() {
     };
   }, [user]);
 
+  function onSearch(event: FormEvent) {
+    event.preventDefault();
+    navigate(`/library${queryString({ search: query.trim() })}`);
+  }
+
+  const standing = featured.slice(0, 5);
+
   return (
     <div className="shell">
       <Nav />
-      <main className="page">
+      <main className="page" id="main">
         <section className="hero">
-          <div>
-            <h1 className="hero__statement">
-              {stats ? `${stats.books.toLocaleString("en")} English books.` : "Every English classic."}{" "}
-              <em>No checkout desk.</em>
-            </h1>
+          <div className="hero__copy">
+            <h1 className="hero__title">Other worlds, open on every shelf.</h1>
             <p className="hero__note">
-              Public-domain literature, set for the screen and split chapter by chapter.
-              Open a book and start reading — no waiting list, no paywall, no app to install.
+              {stats ? `${stats.books.toLocaleString("en")} fantasy books` : "Fantasy books"} from
+              the public domain, from Oz and Wonderland to Elfland and Witchland. Set for the
+              screen, split into chapters, and free to read.
             </p>
+
+            <form className="hero__search" role="search" onSubmit={onSearch}>
+              <label className="visually-hidden" htmlFor="home-search">
+                Search titles and authors
+              </label>
+              <Icon name="search" size={20} />
+              <input
+                id="home-search"
+                type="search"
+                placeholder="Search fantasy by title or author"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+              />
+              <button className="btn btn--solid" type="submit">
+                Search
+              </button>
+            </form>
+
+            {stats ? (
+              <p className="hero__stats">
+                {stats.chapters.toLocaleString("en")} chapters ready to read, all free.
+              </p>
+            ) : null}
           </div>
-          <aside className="hero__aside">
-            <dl className="hero__stats">
-              <div>
-                <dt>Books catalogued</dt>
-                <dd>{stats ? stats.books.toLocaleString("en") : "—"}</dd>
+
+          {standing.length ? (
+            <div className="ledge" aria-label="Featured books">
+              <div className="ledge__books">
+                {standing.map((book) => (
+                  <Link key={book.id} className="ledge__book" to={`/books/${book.id}`}>
+                    <BookCover src={book.cover_url} title={book.title} />
+                    <span className="visually-hidden">{book.title}</span>
+                  </Link>
+                ))}
               </div>
-              <div>
-                <dt>Chapters indexed</dt>
-                <dd>{stats ? formatCount(stats.chapters) : "—"}</dd>
-              </div>
-              <div>
-                <dt>Cost to read</dt>
-                <dd>Free</dd>
-              </div>
-            </dl>
-          </aside>
+            </div>
+          ) : null}
         </section>
 
-        {error ? <p className="notice" style={{ marginTop: 32 }}>{error}</p> : null}
+        {error ? <p className="notice">{error}</p> : null}
 
         {progress ? (
           <section className="continue" aria-label="Continue reading">
-            <div className="continue__cover">
+            <Link className="continue__cover" to={`/books/${progress.book_id}`}>
               <BookCover src={progress.cover_url} title={progress.book_title} />
-            </div>
-            <div>
-              <p className="continue__label">Back on the shelf</p>
+            </Link>
+            <div className="continue__body">
+              <p className="continue__label">You were reading</p>
               <h2 className="continue__title">{progress.book_title}</h2>
               <p className="continue__meta">
-                {progress.chapter_title || "Chapter one"} · {progress.percent}% read
+                {progress.chapter_title || "Chapter one"}, {progress.percent}% through
               </p>
-              <div className="continue__bar">
+              <div className="meter" aria-hidden="true">
                 <span style={{ width: `${progress.percent}%` }} />
               </div>
             </div>
@@ -121,6 +149,27 @@ export default function HomePage() {
           </section>
         ) : null}
 
+        {facets.length ? (
+          <section className="section">
+            <div className="section__head">
+              <h2 className="section__title">Browse by category</h2>
+              <Link className="section__link" to="/library">
+                See every book
+              </Link>
+            </div>
+            <ul className="chips">
+              {facets.map((facet) => (
+                <li key={facet.slug}>
+                  <Link className="chip" to={`/library${queryString({ category: facet.slug })}`}>
+                    {facet.name}
+                    <small>{facet.count.toLocaleString("en")}</small>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </section>
+        ) : null}
+
         {featured.length ? (
           <section className="section">
             <div className="section__head">
@@ -129,8 +178,8 @@ export default function HomePage() {
                 Browse everything
               </Link>
             </div>
-            <div className="shelf">
-              {featured.slice(0, 16).map((book) => (
+            <div className="grid">
+              {featured.slice(0, 12).map((book) => (
                 <BookCard key={book.id} book={book} />
               ))}
             </div>
@@ -145,7 +194,7 @@ export default function HomePage() {
                 More short reads
               </Link>
             </div>
-            <div className="shelf">
+            <div className="grid">
               {shortBooks.map((book) => (
                 <BookCard key={book.id} book={book} />
               ))}
@@ -153,36 +202,6 @@ export default function HomePage() {
           </section>
         ) : null}
 
-        {facets.length ? (
-          <section className="section">
-            <div className="section__head">
-              <h2 className="section__title">Browse by shelf</h2>
-              <p className="section__note">Shelves are how Gutenberg groups its catalogue.</p>
-            </div>
-            <div className="filter-list" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", display: "grid", gap: "0 40px" }}>
-              {facets.map((facet) => (
-                <Link
-                  key={facet.name}
-                  to={`/library${queryString({ shelf: facet.name })}`}
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    gap: 12,
-                    padding: "9px 0",
-                    borderBottom: "1px solid var(--line-soft)",
-                    fontSize: 13.5,
-                    color: "var(--ink-2)",
-                  }}
-                >
-                  <span>{facet.name}</span>
-                  <small style={{ color: "var(--muted)", fontVariantNumeric: "tabular-nums" }}>
-                    {facet.count}
-                  </small>
-                </Link>
-              ))}
-            </div>
-          </section>
-        ) : null}
       </main>
       <Footer />
     </div>

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 
-import { ApiError, api, formatCount } from "../api";
+import { ApiError, api, formatCount, queryString, readingTime } from "../api";
 import { useAuth } from "../auth";
 import BookCover from "../components/BookCover";
 import Footer from "../components/Footer";
@@ -65,7 +65,7 @@ export default function BookPage() {
     return (
       <div className="shell">
         <Nav />
-        <main className="page">
+        <main className="page" id="main">
           <div className="empty">
             <h2>This book isn’t here.</h2>
             <p>{error}</p>
@@ -83,7 +83,7 @@ export default function BookPage() {
     return (
       <div className="shell">
         <Nav />
-        <main className="page loading">Fetching the book…</main>
+        <main className="page loading">Opening the book…</main>
         <Footer />
       </div>
     );
@@ -92,11 +92,12 @@ export default function BookPage() {
   const startChapter = book.progress?.chapter_index ?? 0;
   const year = publicationYear(book.issued_date);
   const hasProgress = Boolean(book.progress && book.progress.percent > 0);
+  const readable = book.chapters.length > 0;
 
   return (
     <div className="shell">
       <Nav />
-      <main className="page">
+      <main className="page" id="main">
         <div className="book-hero">
           <div className="book-hero__cover">
             <BookCover src={book.cover_url} title={book.title} />
@@ -112,19 +113,24 @@ export default function BookPage() {
               <p className="book-hero__description">{book.description}</p>
             ) : (
               <p className="book-hero__description">
-                {book.subjects.length
-                  ? `A ${book.subjects.slice(0, 3).join(", ").toLowerCase()} title from the public-domain shelf.`
-                  : "This edition has no description yet, but the full text is ready to read."}
+                {book.categories.length
+                  ? `Filed under ${book.categories
+                      .slice(0, 3)
+                      .map((category) => category.name.toLowerCase())
+                      .join(", ")}.`
+                  : "This edition has no description yet."}
               </p>
             )}
 
             <div className="book-hero__actions">
-              <Link
-                className="btn btn--solid"
-                to={`/books/${book.id}/read/${startChapter}`}
-              >
-                {hasProgress ? "Continue reading" : "Start reading"}
-              </Link>
+              {readable ? (
+                <Link
+                  className="btn btn--solid"
+                  to={`/books/${book.id}/read/${startChapter}`}
+                >
+                  {hasProgress ? "Continue reading" : "Start reading"}
+                </Link>
+              ) : null}
               <button
                 className="btn btn--ghost"
                 type="button"
@@ -151,12 +157,18 @@ export default function BookPage() {
                 <dt>Length</dt>
                 <dd>{book.word_count ? `${formatCount(book.word_count)} words` : "Not measured"}</dd>
               </div>
+              {book.word_count ? (
+                <div>
+                  <dt>Reading time</dt>
+                  <dd>{readingTime(book.word_count).replace(/ (to )?read$/, "")}</dd>
+                </div>
+              ) : null}
               <div>
                 <dt>Chapters</dt>
                 <dd>{book.chapter_count || "—"}</dd>
               </div>
               <div>
-                <dt>First published</dt>
+                <dt>On Gutenberg since</dt>
                 <dd>{year ?? "Unknown"}</dd>
               </div>
               <div>
@@ -171,10 +183,16 @@ export default function BookPage() {
               ) : null}
             </dl>
 
-            {book.subjects.length ? (
-              <p style={{ marginTop: 24, fontSize: 13, color: "var(--muted)", maxWidth: "60ch" }}>
-                {book.subjects.slice(0, 8).join(" · ")}
-              </p>
+            {book.categories.length ? (
+              <ul className="tags" aria-label="Categories">
+                {book.categories.map((category) => (
+                  <li key={category.slug}>
+                    <Link to={`/library${queryString({ category: category.slug })}`}>
+                      {category.name}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
             ) : null}
           </div>
         </div>
@@ -183,10 +201,20 @@ export default function BookPage() {
           <div className="section__head">
             <h2 className="section__title">Contents</h2>
             <p className="section__note">
-              {book.chapter_count} chapters
-              {hasProgress ? ` · you stopped in ${book.progress?.chapter_title || "chapter one"}` : ""}
+              {hasProgress
+                ? `You stopped in ${book.progress?.chapter_title || "chapter one"}`
+                : readable
+                  ? `${book.chapter_count} chapters`
+                  : null}
             </p>
           </div>
+
+          {!readable ? (
+            <p className="notice">
+              The text of this edition could not be prepared for reading. Try again later,
+              or open the source edition on Project Gutenberg.
+            </p>
+          ) : null}
 
           <div className={book.chapters.length > 40 ? "toc toc__scroll" : "toc"}>
             {book.chapters.map((chapter) => (

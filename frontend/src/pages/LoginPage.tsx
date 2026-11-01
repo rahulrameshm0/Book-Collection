@@ -33,7 +33,7 @@ export default function LoginPage() {
   return (
     <div className="shell">
       <Nav />
-      <main className="auth">
+      <main className="auth" id="main">
         <div className="auth__intro">
           <h1>Your place is kept.</h1>
           <p>
@@ -71,7 +71,7 @@ export default function LoginPage() {
             />
           </div>
 
-          <button className="btn btn--solid" type="submit" disabled={busy} style={{ width: "100%" }}>
+          <button className="btn btn--solid btn--block" type="submit" disabled={busy}>
             {busy ? "Signing in…" : "Sign in"}
           </button>
 

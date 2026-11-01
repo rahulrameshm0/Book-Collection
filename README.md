@@ -1,16 +1,23 @@
 # Shelf
 
-A reading app for public-domain books. Shelf imports the full English-language
-[Project Gutenberg](https://www.gutenberg.org/) catalog (~61,000 books), splits
-each book into chapters, and lets you read it in the browser, keep a personal
-shelf, and pick up where you left off.
+A reading app for public-domain fantasy. Shelf carries every English-language
+fantasy and fairy-tale book in the [Project Gutenberg](https://www.gutenberg.org/)
+catalog (~1,100 books, from Oz and Wonderland to Elfland and Witchland) and
+nothing else. It splits each book into chapters and lets you read it in the
+browser, keep a personal shelf, and pick up where you left off.
+
+A book counts as fantasy when Gutenberg gives it a "Fantasy…" or "Fairy tales…"
+subject, or puts it on its "Fantasy" bookshelf. Books are then filed into
+categories such as *Fairy tales & folklore*, *Magic & witchcraft* and *Dragons,
+fairies & creatures*. Both rules live in `backend/library/services/genre.py`.
 
 Built with **Django + Django REST Framework** on the backend and **React +
 TypeScript (Vite)** on the frontend.
 
 ## Features
 
-- Browse and search the Gutenberg catalog by title, author, subject or bookshelf
+- Browse ten fantasy categories, or search by title or author
+- Any book's text is downloaded from Gutenberg the first time someone opens it
 - Clean chapter-by-chapter reader (Gutenberg boilerplate stripped, paragraphs unwrapped)
 - Accounts with JWT authentication
 - Personal shelf and reading progress per book
@@ -25,8 +32,9 @@ backend/                Django project
   config/               settings, URLs, WSGI
   library/              models, API views, serializers
     services/           Gutenberg download + chapter splitting
+    services/genre.py   what counts as fantasy, and its categories
     management/commands sync_catalog, seed_books
-  data/pg_catalog.csv   cached Gutenberg catalog
+  data/pg_catalog.csv   the fantasy rows of the Gutenberg catalog
 frontend/               React + TypeScript app (Vite)
 build.sh                production build script (used by Render)
 render.yaml             Render Blueprint
@@ -47,8 +55,8 @@ python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 python manage.py migrate
-python manage.py sync_catalog      # import the catalog (~61k books, a few seconds)
-python manage.py seed_books        # download a starter shelf of readable books
+python manage.py sync_catalog      # import fantasy books, remove any that are not
+python manage.py seed_books        # download a starter shelf of fantasy classics
 python manage.py createsuperuser   # optional, for /admin
 python manage.py runserver
 ```
@@ -81,14 +89,15 @@ All endpoints are under `/api/`.
 
 | Endpoint | Description |
 | --- | --- |
-| `GET books/` | List and search books (paginated) |
+| `GET books/?category=magic` | List, search and filter books (paginated) |
 | `GET books/{id}/` | Book details |
 | `GET books/{id}/chapters/` | Chapter list |
 | `GET books/{id}/chapters/{index}/` | Chapter text |
 | `GET books/{id}/cover/` | Cover image |
 | `GET books/{id}/download/` | Full text as `.txt` |
 | `POST books/upload/` | Upload a book (auth) |
-| `GET featured/`, `stats/`, `facets/` | Home page and filter data |
+| `GET facets/` | Fantasy categories with book counts |
+| `GET featured/`, `stats/` | Home page data |
 | `POST auth/register/` | Create an account |
 | `POST auth/token/`, `auth/token/refresh/` | Log in / refresh JWT |
 | `GET auth/me/` | Current user |

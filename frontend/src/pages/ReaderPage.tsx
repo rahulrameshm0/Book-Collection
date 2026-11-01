@@ -3,9 +3,14 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 
 import { api } from "../api";
 import { useAuth } from "../auth";
+import Icon from "../components/Icon";
+import { useTheme } from "../theme";
 import type { BookDetail, ChapterContent } from "../types";
 
-type Theme = "paper" | "sepia" | "night";
+// "auto" follows the site theme: paper by day, night after dark.
+type Theme = "auto" | "paper" | "sepia" | "night";
+
+const THEMES: Theme[] = ["auto", "paper", "sepia", "night"];
 
 type ReaderSettings = {
   theme: Theme;
@@ -14,13 +19,14 @@ type ReaderSettings = {
 };
 
 const SETTINGS_KEY = "shelf_reader_settings";
+const DEFAULT_SETTINGS: ReaderSettings = { theme: "auto", size: 20, width: 66 };
 
 function loadSettings(): ReaderSettings {
   try {
     const stored = JSON.parse(localStorage.getItem(SETTINGS_KEY) || "null");
     if (stored && typeof stored.size === "number") {
       return {
-        theme: ["paper", "sepia", "night"].includes(stored.theme) ? stored.theme : "paper",
+        theme: THEMES.includes(stored.theme) ? stored.theme : "auto",
         size: Math.min(Math.max(stored.size, 15), 30),
         width: Math.min(Math.max(stored.width, 48), 90),
       };
@@ -28,7 +34,7 @@ function loadSettings(): ReaderSettings {
   } catch {
     /* fall through */
   }
-  return { theme: "paper", size: 20, width: 66 };
+  return DEFAULT_SETTINGS;
 }
 
 function paragraphs(text: string) {
@@ -43,6 +49,7 @@ export default function ReaderPage() {
   const { id, index } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const siteTheme = useTheme();
   const chapterIndex = Number(index ?? "0");
 
   const [book, setBook] = useState<BookDetail | null>(null);
@@ -185,25 +192,31 @@ export default function ReaderPage() {
     "--reader-width": `${settings.width}ch`,
   } as React.CSSProperties;
 
+  const page =
+    settings.theme === "auto" ? (siteTheme === "dark" ? "night" : "paper") : settings.theme;
+
   return (
-    <div className="reader" data-theme={settings.theme} style={readerStyle}>
+    <div className="reader" data-page={page} style={readerStyle}>
       <div className="reader__progress" aria-hidden="true">
         <span style={{ width: `${overall}%` }} />
       </div>
 
       <div className="reader__bar">
         <Link to={`/books/${id}`} aria-label="Back to book details">
-          ← Book
+          <Icon name="back" />
+          <span className="reader__bar-label">Book</span>
         </Link>
         <span className="reader__bar-title">{book?.title ?? "Opening…"}</span>
         <button type="button" onClick={() => setTocOpen(true)}>
-          Contents
+          <Icon name="list" />
+          <span className="reader__bar-label">Contents</span>
         </button>
         <button
           type="button"
           className={panelOpen ? "is-active" : ""}
           onClick={() => setPanelOpen((open) => !open)}
           aria-expanded={panelOpen}
+          aria-label="Reading preferences"
         >
           Aa
         </button>
@@ -224,8 +237,8 @@ export default function ReaderPage() {
 
         {chapter ? (
           <>
-            <p className="chapter__eyebrow">
-              {book?.title} · {chapterIndex + 1} of {total}
+            <p className="chapter__position">
+              Chapter {chapterIndex + 1} of {total}
             </p>
             <h1 className="chapter__title">
               {chapter.title || `Chapter ${chapterIndex + 1}`}
@@ -240,15 +253,8 @@ export default function ReaderPage() {
             </article>
 
             {!user ? (
-              <p
-                style={{
-                  marginTop: 40,
-                  fontSize: 14,
-                  fontStyle: "italic",
-                  color: "var(--reader-muted)",
-                }}
-              >
-                <Link to="/login" style={{ borderBottom: "1px solid currentColor" }}>
+              <p className="reader__hint">
+                <Link to="/login" state={{ from: `/books/${id}/read/${chapterIndex}` }}>
                   Sign in
                 </Link>{" "}
                 to keep your place in this book.
@@ -257,7 +263,7 @@ export default function ReaderPage() {
 
             <nav className="reader__nav" aria-label="Chapter navigation">
               {chapter.previous ? (
-                <button type="button" onClick={() => goTo(chapter.previous?.index)} style={{ textAlign: "left" }}>
+                <button type="button" onClick={() => goTo(chapter.previous?.index)}>
                   <small>Previous</small>
                   <span>{chapter.previous.title}</span>
                 </button>
@@ -265,7 +271,7 @@ export default function ReaderPage() {
                 <span />
               )}
               {chapter.next ? (
-                <button type="button" onClick={() => goTo(chapter.next?.index)} style={{ textAlign: "right" }}>
+                <button type="button" className="reader__next" onClick={() => goTo(chapter.next?.index)}>
                   <small>Next</small>
                   <span>{chapter.next.title}</span>
                 </button>
@@ -318,11 +324,9 @@ export default function ReaderPage() {
           </div>
 
           <div className="panel-row">
-            <span style={{ display: "block", marginBottom: 8, color: "var(--ink-2)" }}>
-              Page
-            </span>
+            <span className="panel-row__label">Page</span>
             <div className="swatches">
-              {(["paper", "sepia", "night"] as Theme[]).map((theme) => (
+              {THEMES.map((theme) => (
                 <button
                   key={theme}
                   type="button"
@@ -336,10 +340,9 @@ export default function ReaderPage() {
           </div>
 
           <button
-            className="btn btn--ghost btn--sm"
+            className="btn btn--ghost btn--sm btn--block"
             type="button"
-            style={{ width: "100%" }}
-            onClick={() => setSettings({ theme: "paper", size: 20, width: 66 })}
+            onClick={() => setSettings(DEFAULT_SETTINGS)}
           >
             Reset
           </button>
@@ -352,7 +355,7 @@ export default function ReaderPage() {
             <div className="reader__toc-head">
               <span>Contents</span>
               <button type="button" onClick={() => setTocOpen(false)} aria-label="Close contents">
-                ×
+                <Icon name="close" />
               </button>
             </div>
             <ol>

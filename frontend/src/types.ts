@@ -42,6 +42,7 @@ export type BookDetail = {
   description: string;
   subjects: string[];
   shelves: string[];
+  categories: Category[];
   issued_date: string | null;
   source: "gutenberg" | "upload";
   word_count: number;
@@ -73,8 +74,12 @@ export type Page<T> = {
   results: T[];
 };
 
-export type Facet = {
+export type Category = {
+  slug: string;
   name: string;
+};
+
+export type Facet = Category & {
   count: number;
 };
 
@@ -89,6 +94,7 @@ export type BookQuery = {
   search?: string;
   subject?: string;
   shelf?: string;
+  category?: string;
   author?: string;
   ordering?: string;
   page?: number;

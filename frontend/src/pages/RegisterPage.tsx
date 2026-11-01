@@ -34,7 +34,7 @@ export default function RegisterPage() {
   return (
     <div className="shell">
       <Nav />
-      <main className="auth">
+      <main className="auth" id="main">
         <div className="auth__intro">
           <h1>Start a shelf.</h1>
           <p>
@@ -86,7 +86,7 @@ export default function RegisterPage() {
             <p className="field__hint">At least 8 characters, not entirely numeric.</p>
           </div>
 
-          <button className="btn btn--solid" type="submit" disabled={busy} style={{ width: "100%" }}>
+          <button className="btn btn--solid btn--block" type="submit" disabled={busy}>
             {busy ? "Creating account…" : "Create account"}
           </button>
 

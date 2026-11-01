@@ -7,6 +7,8 @@ from django.conf import settings
 from django.core.management.base import BaseCommand
 
 from library.models import Author, Book
+from library.services import gutenberg
+from library.services.genre import is_fantasy
 
 CATALOG_URL = "https://www.gutenberg.org/cache/epub/feeds/pg_catalog.csv"
 CSV_PATH = settings.BASE_DIR / "data" / "pg_catalog.csv"
@@ -43,7 +45,7 @@ class Command(BaseCommand):
             "--limit",
             type=int,
             default=0,
-            help="Only import the first N English books (default: all ~62,000).",
+            help="Only import the first N English fantasy books (default: all ~670).",
         )
         parser.add_argument(
             "--refresh-csv",
@@ -56,17 +58,25 @@ class Command(BaseCommand):
         english = [
             row
             for row in rows
-            if row["Type"] == "Text" and row["Language"].strip().lower() == "en"
+            if row["Type"] == "Text"
+            and row["Language"].strip().lower() == "en"
+            and is_fantasy(row.get("Subjects", ""), row.get("Bookshelves", ""))
         ]
 
+        # Prune against the whole fantasy list, so --limit never deletes books.
+        removed = self.prune({int(row["Text#"]) for row in english if row["Text#"].isdigit()})
         if options["limit"]:
             english = english[: options["limit"]]
 
-        self.stdout.write(f"Importing {len(english):,} English books…")
+        if removed:
+            self.stdout.write(f"Removed {removed:,} books that are not fantasy.")
+
+        self.stdout.write(f"Importing {len(english):,} English fantasy books…")
 
         existing_ids = set(
             Book.objects.exclude(gutenberg_id=None).values_list("gutenberg_id", flat=True)
         )
+        self.refresh_metadata(english, existing_ids)
 
         seen = set()
         pending = []
@@ -170,12 +180,57 @@ class Command(BaseCommand):
             )
         )
 
+    def prune(self, fantasy_ids):
+        """Delete every Gutenberg book outside the fantasy catalogue, with its
+        cached files. Books people uploaded themselves are kept."""
+        doomed = list(
+            Book.objects.filter(source=Book.Source.GUTENBERG)
+            .exclude(gutenberg_id__in=fantasy_ids)
+            .values_list("id", flat=True)
+        )
+
+        for start in range(0, len(doomed), 1000):
+            batch = Book.objects.filter(pk__in=doomed[start : start + 1000])
+            for book in batch:
+                gutenberg.text_path(book).unlink(missing_ok=True)
+                gutenberg.cover_path(book).unlink(missing_ok=True)
+            batch.delete()
+
+        if doomed:
+            Author.objects.filter(books=None).delete()
+        return len(doomed)
+
+    def refresh_metadata(self, rows, existing_ids):
+        """Copy subjects and shelves onto books that are already here, so books
+        created by seed_books before the catalogue get their categories."""
+        by_gid = {int(row["Text#"]): row for row in rows if row["Text#"].isdigit()}
+        books = list(Book.objects.filter(gutenberg_id__in=existing_ids & by_gid.keys()))
+        for book in books:
+            row = by_gid[book.gutenberg_id]
+            book.subjects = row.get("Subjects", "")[:4000]
+            book.bookshelves = row.get("Bookshelves", "")[:4000]
+        Book.objects.bulk_update(books, ["subjects", "bookshelves"], batch_size=500)
+
     def load_catalog(self, refresh=False):
         CSV_PATH.parent.mkdir(parents=True, exist_ok=True)
         if refresh or not CSV_PATH.exists():
-            self.stdout.write("Downloading Project Gutenberg catalog (≈21 MB)…")
+            self.stdout.write("Downloading the Project Gutenberg catalog (≈21 MB) and keeping the fantasy…")
             response = requests.get(CATALOG_URL, timeout=180)
             response.raise_for_status()
-            CSV_PATH.write_bytes(response.content)
+            rows = csv.DictReader(io.StringIO(response.content.decode("utf-8-sig")))
+            self.write_fantasy_only(rows)
         text = CSV_PATH.read_text(encoding="utf-8-sig")
         return list(csv.DictReader(io.StringIO(text)))
+
+    def write_fantasy_only(self, rows):
+        """Keep only the English fantasy rows, so the repo carries no other books."""
+        with CSV_PATH.open("w", encoding="utf-8", newline="") as handle:
+            writer = csv.DictWriter(handle, fieldnames=rows.fieldnames)
+            writer.writeheader()
+            for row in rows:
+                if (
+                    row["Type"] == "Text"
+                    and row["Language"].strip().lower() == "en"
+                    and is_fantasy(row.get("Subjects", ""), row.get("Bookshelves", ""))
+                ):
+                    writer.writerow(row)

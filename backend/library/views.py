@@ -21,25 +21,26 @@ from library.serializers import (
     UserSerializer,
 )
 from library.services import gutenberg
+from library.services.genre import all_categories, category_filter
 
 # A hand-picked shelf so a first-time visitor has somewhere to start.
 FEATURED_IDS = [
-    1342,   # Pride and Prejudice
     11,     # Alice's Adventures in Wonderland
-    84,     # Frankenstein
-    1661,   # The Adventures of Sherlock Holmes
-    2701,   # Moby-Dick
-    98,     # A Tale of Two Cities
-    345,    # Dracula
-    36,     # The War of the Worlds
-    64317,  # The Great Gatsby
-    174,    # The Picture of Dorian Gray
-    1260,   # Jane Eyre
-    219,    # Heart of Darkness
-    35,     # The Time Machine
-    514,    # Little Women
-    768,    # Wuthering Heights
-    17396,  # The Secret Garden
+    12,     # Through the Looking-Glass
+    55,     # The Wonderful Wizard of Oz
+    16,     # Peter Pan
+    289,    # The Wind in the Willows
+    708,    # The Princess and the Goblin
+    325,    # Phantastes
+    1640,   # Lilith
+    836,    # The Phoenix and the Carpet
+    3536,   # The Enchanted Castle
+    61077,  # The King of Elfland's Daughter
+    67090,  # The Worm Ouroboros
+    3055,   # The Wood Beyond the World
+    8395,   # The Gods of Pegana
+    42183,  # Queen of the Black Coast
+    68061,  # Lud-in-the-Mist
 ]
 
 
@@ -50,10 +51,10 @@ def placeholder_cover(title: str) -> HttpResponse:
         title.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
     )[:42]
     svg = f"""<svg xmlns="http://www.w3.org/2000/svg" width="400" height="600" viewBox="0 0 400 600">
-  <rect width="400" height="600" fill="#3F5D3A"/>
-  <rect x="18" y="18" width="364" height="564" fill="none" stroke="#EEF0E8" stroke-opacity="0.45"/>
-  <text x="200" y="270" text-anchor="middle" font-family="Georgia, serif" font-size="96" fill="#EEF0E8">{initials}</text>
-  <text x="200" y="330" text-anchor="middle" font-family="Georgia, serif" font-size="22" fill="#EEF0E8" opacity="0.8">{safe_title}</text>
+  <rect width="400" height="600" fill="#6E2A2A"/>
+  <rect x="18" y="18" width="364" height="564" fill="none" stroke="#E6C67E" stroke-opacity="0.45"/>
+  <text x="200" y="270" text-anchor="middle" font-family="Georgia, serif" font-size="96" fill="#E6C67E">{initials}</text>
+  <text x="200" y="330" text-anchor="middle" font-family="Georgia, serif" font-size="22" fill="#E6C67E" opacity="0.8">{safe_title}</text>
 </svg>"""
     response = HttpResponse(svg, content_type="image/svg+xml")
     response["Cache-Control"] = "public, max-age=86400"
@@ -74,8 +75,9 @@ class BookViewSet(viewsets.ReadOnlyModelViewSet):
         queryset = super().get_queryset()
         params = self.request.query_params
 
-        readable = (params.get("readable") or "1").strip().lower()
-        if readable not in {"0", "false", "no", "off"}:
+        # Every fantasy book is listed; its text is fetched the first time it is opened.
+        readable = (params.get("readable") or "0").strip().lower()
+        if readable in {"1", "true", "yes", "on"}:
             queryset = queryset.filter(text_file__gt="", chapter_count__gt=0)
 
         search = (params.get("search") or params.get("q") or "").strip()
@@ -100,6 +102,10 @@ class BookViewSet(viewsets.ReadOnlyModelViewSet):
         if shelf:
             queryset = queryset.filter(bookshelves__icontains=shelf)
 
+        category = category_filter((params.get("category") or "").strip())
+        if category is not None:
+            queryset = queryset.filter(category)
+
         ordering = params.get("ordering", "title")
         allowed = {
             "title": "title",
@@ -122,7 +128,24 @@ class BookViewSet(viewsets.ReadOnlyModelViewSet):
             )
             return queryset.order_by("_relevance", allowed.get(ordering, "title"), "id")
 
+        if ordering in {"short", "long"}:
+            # Books not opened yet have no word count; keep them out of the way.
+            queryset = queryset.annotate(
+                _unmeasured=Case(When(word_count=0, then=Value(1)), default=Value(0))
+            )
+            return queryset.order_by("_unmeasured", allowed[ordering], "id")
+
         return queryset.order_by(allowed.get(ordering, "title"), "id")
+
+    def retrieve(self, request, *args, **kwargs):
+        book = self.get_object()
+        if book.gutenberg_id and not book.chapter_count:
+            # First visit: download and split the text so the contents are ready.
+            try:
+                gutenberg.fetch_and_store(book)
+            except Exception:  # noqa: BLE001 - the page still shows the book's details
+                pass
+        return super().retrieve(request, *args, **kwargs)
 
     @action(detail=True, methods=["get"], url_path=r"chapters")
     def chapters(self, request, pk=None):
@@ -191,21 +214,17 @@ def stats(request):
 @api_view(["GET"])
 @permission_classes([AllowAny])
 def browse_facets(request):
-    """A handful of subject/shelf links for the library sidebar."""
-    shelves = (
-        Book.objects.exclude(bookshelves="")
-        .values_list("bookshelves", flat=True)
-        .iterator(chunk_size=2000)
+    """The fantasy categories, with how many books each holds."""
+    return Response(
+        [
+            {
+                "slug": category["slug"],
+                "name": category["name"],
+                "count": Book.objects.filter(category_filter(category["slug"])).count(),
+            }
+            for category in all_categories()
+        ]
     )
-    counts = {}
-    for raw in shelves:
-        for name in raw.split(";"):
-            name = name.strip()
-            if not name or name.lower().startswith("category:"):
-                continue
-            counts[name] = counts.get(name, 0) + 1
-    top = sorted(counts.items(), key=lambda item: item[1], reverse=True)[:14]
-    return Response([{"name": name, "count": count} for name, count in top])
 
 
 class RegisterView(APIView):

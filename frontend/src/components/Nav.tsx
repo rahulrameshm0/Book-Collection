@@ -1,29 +1,29 @@
 import { Link, NavLink } from "react-router-dom";
 
 import { useAuth } from "../auth";
+import ThemeToggle from "./ThemeToggle";
 
 export default function Nav() {
   const { user, logout } = useAuth();
 
   return (
-    <nav className="nav">
+    <header className="nav">
       <div className="nav__inner">
         <Link className="wordmark" to="/">
-          <img src="/logo.svg" alt="" width="28" height="28" style={{ marginRight: 8, verticalAlign: "middle" }} />
+          <img src="/logo.svg" alt="" width="26" height="26" />
           Shelf
         </Link>
 
-        <div className="nav__links">
+        <nav className="nav__links" aria-label="Main">
           <NavLink to="/library">Library</NavLink>
           {user ? <NavLink to="/shelf">My shelf</NavLink> : null}
-        </div>
+        </nav>
 
         <div className="nav__actions">
+          <ThemeToggle />
           {user ? (
             <>
-              <span className="nav__user">
-                Signed in as <strong>{user.username}</strong>
-              </span>
+              <span className="nav__user">{user.username}</span>
               <button className="btn btn--quiet" type="button" onClick={logout}>
                 Sign out
               </button>
@@ -33,13 +33,13 @@ export default function Nav() {
               <Link className="btn btn--quiet" to="/login">
                 Sign in
               </Link>
-              <Link className="btn btn--solid btn--sm" to="/register">
+              <Link className="btn btn--solid btn--sm nav__join" to="/register">
                 Create account
               </Link>
             </>
           )}
         </div>
       </div>
-    </nav>
+    </header>
   );
 }

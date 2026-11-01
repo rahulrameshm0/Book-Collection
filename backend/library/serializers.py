@@ -3,6 +3,7 @@ from django.contrib.auth.password_validation import validate_password
 from rest_framework import serializers
 
 from library.models import Author, Book, Chapter, ReadingProgress, ShelfItem
+from library.services.genre import categories_for
 
 User = get_user_model()
 
@@ -75,6 +76,7 @@ class BookDetailSerializer(serializers.ModelSerializer):
     cover_url = serializers.CharField(read_only=True)
     subjects = serializers.SerializerMethodField()
     shelves = serializers.SerializerMethodField()
+    categories = serializers.SerializerMethodField()
     description = serializers.CharField(read_only=True)
     chapters = serializers.SerializerMethodField()
     on_shelf = serializers.SerializerMethodField()
@@ -91,6 +93,7 @@ class BookDetailSerializer(serializers.ModelSerializer):
             "description",
             "subjects",
             "shelves",
+            "categories",
             "issued_date",
             "source",
             "word_count",
@@ -99,6 +102,9 @@ class BookDetailSerializer(serializers.ModelSerializer):
             "on_shelf",
             "progress",
         ]
+
+    def get_categories(self, obj):
+        return categories_for(obj.subjects)
 
     def get_subjects(self, obj):
         return obj.subject_list

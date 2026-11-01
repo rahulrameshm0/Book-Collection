@@ -1,5 +1,5 @@
 """
-Load a curated English-language starter shelf from Project Gutenberg.
+Load a curated starter shelf of fantasy classics from Project Gutenberg.
 
 These books come with a short description and download their text right away,
 so the app has something to read on a fresh install.
@@ -16,169 +16,154 @@ from library.services import gutenberg
 
 BOOKS = [
     {
-        "gutenberg_id": 1342,
-        "title": "Pride and Prejudice",
-        "author": "Jane Austen",
-        "description": (
-            "Elizabeth Bennet has no patience for Mr Darcy's pride, and he has none "
-            "for her family. Then the letters start arriving."
-        ),
-    },
-    {
-        "gutenberg_id": 84,
-        "title": "Frankenstein",
-        "author": "Mary Shelley",
-        "description": (
-            "A young scientist builds a living creature, then abandons it. What follows "
-            "is the creature's own account of being made and left alone."
-        ),
-    },
-    {
-        "gutenberg_id": 2701,
-        "title": "Moby-Dick",
-        "author": "Herman Melville",
-        "description": (
-            "Ishmael signs on to the Pequod and meets Captain Ahab, whose only cargo is "
-            "revenge against a white whale."
-        ),
-    },
-    {
         "gutenberg_id": 11,
         "title": "Alice's Adventures in Wonderland",
         "author": "Lewis Carroll",
         "description": (
-            "Down a rabbit hole into a world of riddles, tea parties, and a queen with "
-            "a terrible temper."
+            "Alice follows a white rabbit down a hole into a country where the rules "
+            "change every time she grows or shrinks."
         ),
     },
     {
-        "gutenberg_id": 64317,
-        "title": "The Great Gatsby",
-        "author": "F. Scott Fitzgerald",
+        "gutenberg_id": 12,
+        "title": "Through the Looking-Glass",
+        "author": "Lewis Carroll",
         "description": (
-            "Nick Carraway moves next door to a man who throws enormous parties for a "
-            "woman across the bay."
+            "Alice climbs through the mirror over the mantelpiece and joins a living game "
+            "of chess, hoping to be crowned a queen."
         ),
     },
     {
-        "gutenberg_id": 345,
-        "title": "Dracula",
-        "author": "Bram Stoker",
+        "gutenberg_id": 55,
+        "title": "The Wonderful Wizard of Oz",
+        "author": "L. Frank Baum",
         "description": (
-            "A solicitor's trip to Transylvania becomes a race to stop the count from "
-            "reaching England."
+            "A cyclone carries Dorothy to Oz, and the way home runs along a yellow brick "
+            "road to a wizard who may not be what he seems."
         ),
     },
     {
-        "gutenberg_id": 174,
-        "title": "The Picture of Dorian Gray",
-        "author": "Oscar Wilde",
+        "gutenberg_id": 16,
+        "title": "Peter Pan",
+        "author": "J. M. Barrie",
         "description": (
-            "A portrait ages while its subject stays young, and every pleasure leaves "
-            "its mark somewhere out of sight."
+            "Wendy and her brothers fly out of the nursery window to Neverland, where "
+            "boys never grow up and Captain Hook is waiting."
         ),
     },
     {
-        "gutenberg_id": 1260,
-        "title": "Jane Eyre",
-        "author": "Charlotte Brontë",
+        "gutenberg_id": 289,
+        "title": "The Wind in the Willows",
+        "author": "Kenneth Grahame",
         "description": (
-            "An orphan becomes a governess at Thornfield Hall, where the third floor "
-            "keeps a secret."
+            "Mole abandons his spring cleaning for the riverbank, Ratty's boat, and the "
+            "ruinous enthusiasms of Mr Toad."
         ),
     },
     {
-        "gutenberg_id": 1661,
-        "title": "The Adventures of Sherlock Holmes",
-        "author": "Arthur Conan Doyle",
+        "gutenberg_id": 708,
+        "title": "The Princess and the Goblin",
+        "author": "George MacDonald",
         "description": (
-            "Twelve cases from Baker Street: a scandal in Bohemia, a red-headed league, "
-            "a speckled band, and more."
+            "Princess Irene finds her great-great-grandmother spinning in a forgotten "
+            "tower, while goblins dig beneath the castle."
         ),
     },
     {
-        "gutenberg_id": 35,
-        "title": "The Time Machine",
-        "author": "H. G. Wells",
+        "gutenberg_id": 325,
+        "title": "Phantastes",
+        "author": "George MacDonald",
         "description": (
-            "A Victorian inventor travels to the year 802,701 and finds humanity divided "
-            "into two."
+            "The morning after his twenty-first birthday, Anodos wakes to find his "
+            "bedroom turning into a forest, and walks into Fairy Land."
         ),
     },
     {
-        "gutenberg_id": 205,
-        "title": "Walden",
-        "author": "Henry David Thoreau",
+        "gutenberg_id": 1640,
+        "title": "Lilith",
+        "author": "George MacDonald",
         "description": (
-            "Thoreau spends two years in a cabin by a pond, measuring what a life "
-            "actually needs."
+            "Mr Vane follows his family's long-dead librarian through a mirror into a "
+            "land where the dead lie sleeping and Lilith still rules."
         ),
     },
     {
-        "gutenberg_id": 514,
-        "title": "Little Women",
-        "author": "Louisa May Alcott",
+        "gutenberg_id": 836,
+        "title": "The Phoenix and the Carpet",
+        "author": "E. Nesbit",
         "description": (
-            "Four sisters grow up in wartime Massachusetts, writing, acting, and "
-            "learning what they want."
+            "Four children find an egg rolled up in their new nursery carpet. It hatches "
+            "a vain phoenix, and the carpet turns out to fly."
         ),
     },
     {
-        "gutenberg_id": 98,
-        "title": "A Tale of Two Cities",
-        "author": "Charles Dickens",
+        "gutenberg_id": 3536,
+        "title": "The Enchanted Castle",
+        "author": "E. Nesbit",
         "description": (
-            "London and Paris before the revolution: a doctor released from the "
-            "Bastille, a daughter, and a man who looks like another."
+            "Three children on holiday find a sleeping princess in a hidden garden, and a "
+            "ring whose wishes never go quite to plan."
         ),
     },
     {
-        "gutenberg_id": 768,
-        "title": "Wuthering Heights",
-        "author": "Emily Brontë",
+        "gutenberg_id": 61077,
+        "title": "The King of Elfland's Daughter",
+        "author": "Lord Dunsany",
         "description": (
-            "Heathcliff and Catherine on the moors, and the damage that outlives them "
-            "both."
+            "The people of Erl want a magic lord, so their prince crosses into Elfland "
+            "and brings back the king's daughter as his bride."
         ),
     },
     {
-        "gutenberg_id": 36,
-        "title": "The War of the Worlds",
-        "author": "H. G. Wells",
-        "description": "Cylinders fall on Horsell Common, and the Martians come out.",
-    },
-    {
-        "gutenberg_id": 1952,
-        "title": "The Yellow Wallpaper",
-        "author": "Charlotte Perkins Gilman",
+        "gutenberg_id": 67090,
+        "title": "The Worm Ouroboros",
+        "author": "E. R. Eddison",
         "description": (
-            "A new mother is confined to an upstairs room with yellow paper. The paper "
-            "begins to move."
+            "The lords of Demonland go to war with the sorcerer-king of Witchland, in a "
+            "saga told in grand, archaic prose."
         ),
     },
     {
-        "gutenberg_id": 219,
-        "title": "Heart of Darkness",
-        "author": "Joseph Conrad",
+        "gutenberg_id": 3055,
+        "title": "The Wood Beyond the World",
+        "author": "William Morris",
         "description": (
-            "Marlow travels up the Congo to find Kurtz, a man the jungle has already "
-            "changed."
+            "Golden Walter leaves home to follow a strange trio across the sea, into a "
+            "wood ruled by a sorceress."
         ),
     },
     {
-        "gutenberg_id": 17396,
-        "title": "The Secret Garden",
-        "author": "Frances Hodgson Burnett",
+        "gutenberg_id": 8395,
+        "title": "The Gods of Pegana",
+        "author": "Lord Dunsany",
         "description": (
-            "Mary Lennox is sent to a Yorkshire manor and finds a walled garden nobody "
-            "has opened in ten years."
+            "Dunsany's first book: the scripture of an invented pantheon, gods who made "
+            "the worlds and wait for their maker to wake."
+        ),
+    },
+    {
+        "gutenberg_id": 42183,
+        "title": "Queen of the Black Coast",
+        "author": "Robert E. Howard",
+        "description": (
+            "Conan takes ship to escape the law and falls in with Bêlit, a pirate queen, "
+            "on a jungle river haunted by something older than men."
+        ),
+    },
+    {
+        "gutenberg_id": 68061,
+        "title": "Lud-in-the-Mist",
+        "author": "Hope Mirrlees",
+        "description": (
+            "In a town that has outlawed fairy fruit, the mayor's own son eats some, and "
+            "the mayor must follow him across the border into Fairyland."
         ),
     },
 ]
 
 
 class Command(BaseCommand):
-    help = "Seed a curated starter shelf of English public-domain books."
+    help = "Seed a curated starter shelf of public-domain fantasy."
 
     def add_arguments(self, parser):
         parser.add_argument(

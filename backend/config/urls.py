@@ -10,6 +10,10 @@ admin.site.site_title = "Shelf"
 
 def spa(request, path=""):
     """Serve the built React app for any non-API route."""
+    # Files Vite copies from public/ (logo.svg and friends) sit at the top of dist/.
+    if path and "/" not in path and (settings.FRONTEND_DIST / path).is_file():
+        return static_serve(request, path, document_root=settings.FRONTEND_DIST)
+
     index = settings.FRONTEND_DIST / "index.html"
     if not index.exists():
         raise Http404(
@@ -36,5 +40,5 @@ urlpatterns += [
         static_serve,
         {"document_root": settings.FRONTEND_DIST / "assets"},
     ),
-    re_path(r"^(?!api/|admin/|static/|media/).*$", spa),
+    re_path(r"^(?!api/|admin/|static/|media/)(?P<path>.*)$", spa),
 ]

@@ -152,3 +152,11 @@ export function formatCount(value: number) {
   if (value >= 1_000) return `${Math.round(value / 1_000)}k`;
   return String(value);
 }
+
+/** "About 9 hours", at an unhurried 250 words a minute. */
+export function readingTime(words: number) {
+  const minutes = words / 250;
+  if (minutes < 60) return `${Math.max(5, Math.round(minutes / 5) * 5)} min read`;
+  const hours = Math.round(minutes / 60);
+  return `${hours} ${hours === 1 ? "hour" : "hours"} to read`;
+}

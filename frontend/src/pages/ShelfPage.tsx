@@ -45,8 +45,8 @@ export default function ShelfPage() {
   return (
     <div className="shell">
       <Nav />
-      <main className="page">
-        <div className="library__head" style={{ marginTop: 44 }}>
+      <main className="page" id="main">
+        <div className="library__head library__head--top">
           <div>
             <h1 className="library__title">My shelf</h1>
             <p className="library__count">
@@ -74,12 +74,12 @@ export default function ShelfPage() {
         ) : null}
 
         {items && items.length ? (
-          <div className="grid" style={{ paddingTop: 34 }}>
+          <div className="grid">
             {items.map((item) => {
               const entry = progressFor(item.book.id);
               return (
                 <div className="book" key={item.id}>
-                  <Link to={`/books/${item.book.id}`}>
+                  <Link to={`/books/${item.book.id}`} tabIndex={-1} aria-hidden="true">
                     <BookCover src={item.book.cover_url} title={item.book.title} />
                   </Link>
                   <h3 className="book__title">
@@ -88,24 +88,22 @@ export default function ShelfPage() {
                   <p className="book__author">
                     {item.book.authors.join(", ") || "Unknown author"}
                   </p>
-                  <p className="book__meta">
-                    {entry ? `${entry.percent}% read` : "Not started"}
-                  </p>
-                  <div style={{ display: "flex", gap: 12, marginTop: 8 }}>
+                  {entry ? (
+                    <div className="meter meter--thin" aria-label={`${entry.percent}% read`}>
+                      <span style={{ width: `${entry.percent}%` }} />
+                    </div>
+                  ) : (
+                    <p className="book__meta">Not started</p>
+                  )}
+                  <div className="book__actions">
                     <Link
-                      className="btn btn--quiet"
-                      style={{ fontSize: 12 }}
-                      to={
-                        entry
-                          ? `/books/${item.book.id}/read/${entry.chapter_index}`
-                          : `/books/${item.book.id}/read/0`
-                      }
+                      className="btn btn--quiet btn--sm"
+                      to={`/books/${item.book.id}/read/${entry ? entry.chapter_index : 0}`}
                     >
                       {entry ? "Continue" : "Read"}
                     </Link>
                     <button
-                      className="btn btn--quiet"
-                      style={{ fontSize: 12 }}
+                      className="btn btn--quiet btn--sm"
                       type="button"
                       onClick={() => remove(item.book.id)}
                     >
